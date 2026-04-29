@@ -62,6 +62,33 @@ Notes
 - The app includes a header variable for Content-Security-Policy in `main.py`. THis is the current CSP for Mayo Clinic Platform deployment launches. If your environment requires additional origins, update the CSP list there.
 - For production, secure the postMessage origin checks and do not use `'*'` for targetOrigin when posting sensitive data.
 
+Validate an sd-jwt using the Mayo introspection endpoint
+- In production environments, you should not implicitly trust the sd-jwt provided to you. Especially if you are using the username to provide SSO capabilities into your software. Tokens must be validated upon initial receipt against the introspection endpoint. Do not rely on the token alone as proof of validity.
+- A sample Python validation script is available at `validate_sd_jwt.py`.
+- Replace `MAYO_PROVIDED_SECRET_TOKEN` with the secret provided to you by your technical services team member.
+- The script sends a POST request to `https://catswebapi.mcp.org/api/v1/token/introspect` with the sd-jwt in form-encoded body.
+
+Example Python validation
+```python
+import http.client
+
+conn = http.client.HTTPSConnection("catswebapi.mcp.org")
+
+payload = "token=REPLACE_WITH_YOUR_SD_JWT"
+
+headers = {
+    'Content-Type': "application/x-www-form-urlencoded",
+    'Authorization': "Bearer REPLACE_WITH_YOUR_SECRET_TOKEN"
+}
+
+conn.request("POST", "/api/v1/token/introspect", payload, headers)
+
+res = conn.getresponse()
+data = res.read()
+
+print(data.decode("utf-8"))
+```
+
 Troubleshooting
 - If the FHIR call fails, check browser console for CORS / network errors and ensure the gateway accepts the sdJwt header.
 - Ensure the app is reachable from the parent frame origin when embedding in another domain (CSP and network/firewall).
